@@ -1,2 +1,4 @@
 data/
 venv/
+examples/
+cifar_net.pth

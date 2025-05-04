@@ -61,27 +61,50 @@ def main():
     # The forward method applies the convolutional layers, activation functions, and pooling operations in sequence.
     # The input to the network is a batch of images, and the output is the predicted class scores for each image.
     # The network is designed to take 3-channel images (RGB) as input and output 10 class scores.
+    # class Net(nn.Module):
+    #     def __init__(self):
+    #         super().__init__()
+    #         self.conv1 = nn.Conv2d(3, 6, 5)
+    #         self.pool = nn.MaxPool2d(2, 2)
+    #         self.conv2 = nn.Conv2d(6, 16, 5)
+    #         self.fc1 = nn.Linear(16 * 5 * 5, 120)
+    #         self.fc2 = nn.Linear(120, 84)
+    #         self.fc3 = nn.Linear(84, 10)
+
+    #     def forward(self, x):
+    #         x = self.pool(F.relu(self.conv1(x)))
+    #         x = self.pool(F.relu(self.conv2(x)))
+    #         x = torch.flatten(x, 1) # flatten all dimensions except batch
+    #         x = F.relu(self.fc1(x))
+    #         x = F.relu(self.fc2(x))
+    #         x = self.fc3(x)
+    #         return x
+
     class Net(nn.Module):
         def __init__(self):
             super().__init__()
-            self.conv1 = nn.Conv2d(3, 6, 5)
-            self.pool = nn.MaxPool2d(2, 2)
-            self.conv2 = nn.Conv2d(6, 16, 5)
-            self.fc1 = nn.Linear(16 * 5 * 5, 120)
-            self.fc2 = nn.Linear(120, 84)
-            self.fc3 = nn.Linear(84, 10)
+            self.network = nn.Sequential(
+                nn.Conv2d(3,16,8,1,1),
+                nn.ReLU(),
+                nn.MaxPool2d(2,2),
+                nn.Conv2d(16,32,8,1,1),
+                nn.ReLU(),
+                nn.BatchNorm2d(32),
+                nn.Dropout(p=0.2),
+                nn.Flatten(), 
+                nn.Linear(2048, 64),
+                nn.ReLU(),
+                nn.Linear(64, 10)
 
+            )
         def forward(self, x):
-            x = self.pool(F.relu(self.conv1(x)))
-            x = self.pool(F.relu(self.conv2(x)))
-            x = torch.flatten(x, 1) # flatten all dimensions except batch
-            x = F.relu(self.fc1(x))
-            x = F.relu(self.fc2(x))
-            x = self.fc3(x)
-            return x
+            return self.network(x)
 
     # Create an instance of the network
     net = Net()
+    # Move the network to the GPU if available
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    net.to(device)
     
     # Define a loss function and optimizer
     # The loss function is CrossEntropyLoss, which is commonly used for multi-class classification problems.
@@ -96,11 +119,13 @@ def main():
     # The loss is computed using the criterion, and the backward pass is performed to compute the gradients.
     # The optimizer updates the network parameters based on the computed gradients.
     def train(n):
-        for epoch in range(n):  
+        for epoch in range(1, n+1):  
             running_loss = 0.0
             for i, data in enumerate(trainloader, 0):
                 # get the inputs; data is a list of [inputs, labels]
                 inputs, labels = data
+                # Move the inputs and labels to the GPU if available
+                inputs, labels = inputs.to(device), labels.to(device)
 
                 # zero the parameter gradients
                 optimizer.zero_grad()
@@ -117,10 +142,10 @@ def main():
                     print(f'[{epoch + 1}, {i + 1:5d}] loss: {running_loss / 2000:.3f}')
                     running_loss = 0.0
 
-        print('Finished Training')
+            print(f'Epoch {epoch} finished.')
 
     # Train the network for 5 epochs
-    train(5)
+    train(30)
 
     # Save the trained model
     def save_model():
@@ -142,6 +167,7 @@ def main():
         with torch.no_grad():
             for data in testloader:
                 images, labels = data
+                images, labels = images.to(device), labels.to(device)
                 # calculate outputs by running images through the network
                 outputs = net(images)
                 # the class with the highest energy is what we choose as prediction
@@ -161,6 +187,7 @@ def main():
         with torch.no_grad():
             for data in testloader:
                 images, labels = data
+                images, labels = images.to(device), labels.to(device)
                 # calculate outputs by running images through the network
                 outputs = net(images)
                 # the class with the highest energy is what we choose as prediction

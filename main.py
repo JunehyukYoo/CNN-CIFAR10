@@ -1,6 +1,8 @@
 import torch 
+import random
 import torchvision
 import torchvision.transforms as transforms
+from torchvision.transforms import InterpolationMode
 import matplotlib.pyplot as plt
 import numpy as np
 import torch.nn as nn
@@ -8,16 +10,41 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 def main():
-    transform = transforms.Compose(
-    [transforms.ToTensor(),
-     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+    # Set the random seed for reproducibility
+    np.random.seed(12345)
+    random.seed(12345)
+    torch.manual_seed(12345)
+
+    # Define the transformations to be applied to the images
+    # The transformations include random affine transformations, converting images to tensors,
+    # and normalizing the images.
+    # The random affine transformation applies a random rotation, translation, scaling, and shear to the images.
+    # The ToTensor transformation converts the images to PyTorch tensors.
+    # The Normalize transformation normalizes the images to have a mean of 0.5 and a standard deviation of 0.5.
+    # The normalization is done for each channel (R, G, B) separately.
+    # The mean and standard deviation values are chosen based on the CIFAR-10 dataset.
+    transformation_list = [
+        transforms.RandomAffine(
+            degrees=30,
+            translate=(0.01, 0.01),
+            scale=(0.9, 1.1),
+            shear=None,
+            interpolation=InterpolationMode.NEAREST,  # replaces `resample=0`
+            fill=0                                    # replaces `fillcolor=0`
+        ),
+        transforms.ToTensor(),
+        transforms.Normalize((0.5, 0.5, 0.5),
+                            (0.5, 0.5, 0.5))
+    ]
+
+    transform = transforms.Compose(transformation_list)
 
     # Set the batch size for loading the dataset
     # The batch size determines the number of samples that will be propagated through the network at once.
     # A larger batch size can lead to faster training, but requires more memory.
     # A smaller batch size may lead to more stable training, but can be slower.
     # In this case, we set the batch size to 128, which is a common choice for training deep learning models.
-    batch_size = 128
+    batch_size = 256
 
     # Download and load the CIFAR-10 dataset
     # The CIFAR-10 dataset consists of 60,000 32x32 color images in 10 classes, with 6,000 images per class.
@@ -61,25 +88,6 @@ def main():
     # The forward method applies the convolutional layers, activation functions, and pooling operations in sequence.
     # The input to the network is a batch of images, and the output is the predicted class scores for each image.
     # The network is designed to take 3-channel images (RGB) as input and output 10 class scores.
-    # class Net(nn.Module):
-    #     def __init__(self):
-    #         super().__init__()
-    #         self.conv1 = nn.Conv2d(3, 6, 5)
-    #         self.pool = nn.MaxPool2d(2, 2)
-    #         self.conv2 = nn.Conv2d(6, 16, 5)
-    #         self.fc1 = nn.Linear(16 * 5 * 5, 120)
-    #         self.fc2 = nn.Linear(120, 84)
-    #         self.fc3 = nn.Linear(84, 10)
-
-    #     def forward(self, x):
-    #         x = self.pool(F.relu(self.conv1(x)))
-    #         x = self.pool(F.relu(self.conv2(x)))
-    #         x = torch.flatten(x, 1) # flatten all dimensions except batch
-    #         x = F.relu(self.fc1(x))
-    #         x = F.relu(self.fc2(x))
-    #         x = self.fc3(x)
-    #         return x
-
     class Net(nn.Module):
         def __init__(self):
             super().__init__()
@@ -144,8 +152,8 @@ def main():
 
             print(f'Epoch {epoch} finished.')
 
-    # Train the network for 5 epochs
-    train(30)
+    # Train the network for 50 epochs
+    train(100)
 
     # Save the trained model
     def save_model():
